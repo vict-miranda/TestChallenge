@@ -15,7 +15,7 @@ void RunATM()
     {
         Console.WriteLine($"Payout amount: {payout}");
 
-        // Call recursive function to find combinations
+        // Call function to find combinations
         List<List<int>> combinations = CalculateCombinations(payout, 0, new List<int>());
 
         // Print all possible combinations
@@ -45,30 +45,30 @@ void RunATM()
     }
 }
 
-List<List<int>> CalculateCombinations(int remainingAmount, int currentIndex, List<int> currentCombination)
+List<List<int>> CalculateCombinations(int remainingAmount, int index, List<int> combination)
 {
     List<List<int>> combinations = new List<List<int>>();
 
     if (remainingAmount == 0)
     {
-        combinations.Add(new List<int>(currentCombination));
+        combinations.Add(new List<int>(combination));
         return combinations;
     }
 
-    for (int i = currentIndex; i < denominations.Count; i++)
+    for (int i = index; i < denominations.Count; i++)
     {
         int currentDenomination = denominations[i];
 
         if (remainingAmount >= currentDenomination)
         {
             // Add current denomination to the combination
-            currentCombination.Add(currentDenomination);
+            combination.Add(currentDenomination);
 
             // Recursively find combinations for remaining amount
-            combinations.AddRange(CalculateCombinations(remainingAmount - currentDenomination, i, currentCombination));
+            combinations.AddRange(CalculateCombinations(remainingAmount - currentDenomination, i, combination));
 
             // Remove current denomination from the combination backtracking
-            currentCombination.RemoveAt(currentCombination.Count - 1);
+            combination.RemoveAt(combination.Count - 1);
         }
     }
 
