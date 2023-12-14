@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RestServerCustomers.Model;
 using RestServerCustomers.Validations;
+using System;
 
 namespace RestServerCustomers.Services
 {
@@ -99,9 +101,7 @@ namespace RestServerCustomers.Services
                     jsonObj["customers"] = customersArray;
                     string newJsonResult = Newtonsoft.Json.JsonConvert.SerializeObject(jsonObj,
                                            Newtonsoft.Json.Formatting.Indented);
-                    File.WriteAllText(jsonFile, newJsonResult);
-
-                    
+                    File.WriteAllText(jsonFile, newJsonResult);                    
                 }
                 catch (Exception ex)
                 {
@@ -112,32 +112,68 @@ namespace RestServerCustomers.Services
             return (customers, null);
         }
 
-        public static void InsertOrderedBinarySearch<T>(List<T> list, T item) where T : IComparable<T>
+        /// <inheritdoc/>
+        public (List<Customer>, ValidationErrors) AddCustomer2(List<Customer> newCustomers)
         {
-            int left = 0;
-            int right = list.Count - 1;
+            var validationError = new ValidationErrors();
+            var validator = new CustomerValidator();
+            var customers = GetCustomers();
 
-            while (left <= right)
+            //validate and insert records into the list
+            foreach (var customer in newCustomers)
             {
-                int mid = (left + right) / 2;
-                int comparison = item.CompareTo(list[mid]);
+                var result = validator.Validate(customer);
 
-                if (comparison == 0)
+                if (!result.IsValid)
                 {
-                    list.Insert(mid, item);
-                    return;
+                    validationError.ErrorMessages.AddRange(result.Errors.Select(x => x.ErrorMessage).ToList());
+                    return (null, validationError);
                 }
-                else if (comparison < 0)
+
+                if (customers.Any(x => x.Id == customer.Id))
                 {
-                    right = mid - 1;
+                    validationError.ErrorMessages.Add("Id is already in use");
+                    return (null, validationError);
                 }
-                else
+
+                var customerAdd = new Customer { Id = customer.Id, FirstName = customer.FirstName, LastName = customer.LastName, Age = customer.Age };
+
+                int index = customers.BinarySearch(customerAdd, new CustomerComparer());
+                if (index < 0)
                 {
-                    left = mid + 1;
+                    index = ~index;
                 }
+                customers.Insert(index, customerAdd);
+            }            
+
+            try
+            {
+                //save json with customers
+                var json = File.ReadAllText(jsonFile);
+                var jsonObj = JObject.Parse(json);
+                var customersArray = jsonObj.GetValue("customers") as JArray;
+                customersArray = [];
+
+                //generate json string to save customers
+                string newJsonCustomers = string.Empty;
+
+                foreach (var customer in customers)
+                {
+                    newJsonCustomers = "{ 'id': " + customer.Id + ", 'firstName': '" + customer.FirstName + "', 'lastName': '" + customer.LastName + "', 'age': " + customer.Age + "}";
+                    var newCustObj = JObject.Parse(newJsonCustomers);
+                    customersArray.Add(newCustObj);
+                }                
+
+                jsonObj["customers"] = customersArray;
+                string newJsonResult = JsonConvert.SerializeObject(jsonObj, Formatting.Indented);
+                File.WriteAllText(jsonFile, newJsonResult);
             }
+            catch (Exception ex)
+            {
+                throw ex;
+            }            
 
-            list.Insert(left, item);
+            return (customers, null);
         }
 
     }

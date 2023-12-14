@@ -34,7 +34,7 @@ namespace RestServerCustomers.Controllers
         [HttpPost]
         public IActionResult Post([FromBody]List<Customer> customers)
         {
-            var (response, errors) = _customerService.AddCustomer(customers);
+            var (response, errors) = _customerService.AddCustomer2(customers);
             if (errors != null && errors.ErrorMessages.Any())
             {
                 return BadRequest(errors);

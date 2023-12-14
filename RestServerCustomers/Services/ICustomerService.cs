@@ -17,5 +17,7 @@ namespace RestServerCustomers.Services
         /// <param name="newCustomers">Customers information</param>
         /// <returns>A tuple with the new customer list, and an object with possible errors</returns>
         (List<Customer>, ValidationErrors) AddCustomer(List<Customer> newCustomers);
+
+        (List<Customer>, ValidationErrors) AddCustomer2(List<Customer> newCustomers);
     }
 }
