@@ -9,15 +9,13 @@ namespace RestServerCustomers.Services
         /// Gets a list of customers
         /// </summary>
         /// <returns>A list of <see cref="Customer"/></returns>
-        List<Customer> GetCustomers();
+        Task<List<Customer>> GetCustomers();
 
         /// <summary>
         /// Creates a new Customer
         /// </summary>
         /// <param name="newCustomers">Customers information</param>
         /// <returns>A tuple with the new customer list, and an object with possible errors</returns>
-        (List<Customer>, ValidationErrors) AddCustomer(List<Customer> newCustomers);
-
-        (List<Customer>, ValidationErrors) AddCustomer2(List<Customer> newCustomers);
+        Task<(List<Customer>, List<ValidationErrors>)> AddCustomer(List<Customer> newCustomers);
     }
 }

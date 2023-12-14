@@ -2,7 +2,6 @@
 using Newtonsoft.Json.Linq;
 using RestServerCustomers.Model;
 using RestServerCustomers.Validations;
-using System;
 
 namespace RestServerCustomers.Services
 {
@@ -18,9 +17,9 @@ namespace RestServerCustomers.Services
         }
 
         /// <inheritdoc/>
-        public List<Customer> GetCustomers()
+        public async Task<List<Customer>> GetCustomers()
         {
-            var json = File.ReadAllText(jsonFile);
+            var json = await File.ReadAllTextAsync(jsonFile);
             List<Customer> customers = new List<Customer>();
             
             try
@@ -55,32 +54,35 @@ namespace RestServerCustomers.Services
         }
 
         /// <inheritdoc/>
-        public (List<Customer>, ValidationErrors) AddCustomer(List<Customer> newCustomers)
+        public async Task<(List<Customer>, List<ValidationErrors>)> AddCustomer(List<Customer> newCustomers)
         {
-            var validationError = new ValidationErrors();
+            var validationsErrors = new List<ValidationErrors>();
+            
             var validator = new CustomerValidator();
-            var customers = GetCustomers();
+            var customers = await GetCustomers();
 
+            //validate and insert records into the list
             foreach (var customer in newCustomers)
             {
                 var result = validator.Validate(customer);
+                var validationError = new ValidationErrors();
+
+                if (customers.Any(x => x.Id == customer.Id))
+                {
+                    validationError.CustomerId = customer.Id;
+                    validationError.ErrorMessages.Add("Id is already in use");
+                    validationsErrors.Add(validationError);
+                }
 
                 if (!result.IsValid)
                 {
+                    validationError.CustomerId = customer.Id;
                     validationError.ErrorMessages.AddRange(result.Errors.Select(x => x.ErrorMessage).ToList());
-                    return (null, validationError);
-                }
+                    validationsErrors.Add(validationError);
+                }                
 
-                try
-                {                   
-
-                    if (customers.Any(x => x.Id == customer.Id))
-                    {
-                        validationError.ErrorMessages.Add("Id is already in use");
-                        return (null, validationError);
-                    }
-
-                    var newCustomer = "{ 'id': " + customer.Id + ", 'firstName': '" + customer.FirstName + "', 'lastName': '" + customer.LastName + "', 'age': '" + customer.Age + "'}";
+                if (!validationError.ErrorMessages.Any())
+                {
                     var customerAdd = new Customer { Id = customer.Id, FirstName = customer.FirstName, LastName = customer.LastName, Age = customer.Age };
 
                     int index = customers.BinarySearch(customerAdd, new CustomerComparer());
@@ -89,66 +91,18 @@ namespace RestServerCustomers.Services
                         index = ~index;
                     }
                     customers.Insert(index, customerAdd);
-
-                    //InsertOrderedBinarySearch(customers, customerAdd);
-
-                    var json = File.ReadAllText(jsonFile);
-                    var jsonObj = JObject.Parse(json);
-                    var customersArray = jsonObj.GetValue("customers") as JArray;
-                    var newCompany = JObject.Parse(newCustomer);
-                    customersArray.Add(newCompany);
-
-                    jsonObj["customers"] = customersArray;
-                    string newJsonResult = Newtonsoft.Json.JsonConvert.SerializeObject(jsonObj,
-                                           Newtonsoft.Json.Formatting.Indented);
-                    File.WriteAllText(jsonFile, newJsonResult);                    
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
+                }                
             }
-
-            return (customers, null);
-        }
-
-        /// <inheritdoc/>
-        public (List<Customer>, ValidationErrors) AddCustomer2(List<Customer> newCustomers)
-        {
-            var validationError = new ValidationErrors();
-            var validator = new CustomerValidator();
-            var customers = GetCustomers();
-
-            //validate and insert records into the list
-            foreach (var customer in newCustomers)
+            
+            //if exists error return an object with errors
+            if (validationsErrors.Any())
             {
-                var result = validator.Validate(customer);
-
-                if (!result.IsValid)
-                {
-                    validationError.ErrorMessages.AddRange(result.Errors.Select(x => x.ErrorMessage).ToList());
-                    return (null, validationError);
-                }
-
-                if (customers.Any(x => x.Id == customer.Id))
-                {
-                    validationError.ErrorMessages.Add("Id is already in use");
-                    return (null, validationError);
-                }
-
-                var customerAdd = new Customer { Id = customer.Id, FirstName = customer.FirstName, LastName = customer.LastName, Age = customer.Age };
-
-                int index = customers.BinarySearch(customerAdd, new CustomerComparer());
-                if (index < 0)
-                {
-                    index = ~index;
-                }
-                customers.Insert(index, customerAdd);
-            }            
+                return (null, validationsErrors);
+            }
 
             try
             {
-                //save json with customers
+                //read json
                 var json = File.ReadAllText(jsonFile);
                 var jsonObj = JObject.Parse(json);
                 var customersArray = jsonObj.GetValue("customers") as JArray;
@@ -162,11 +116,12 @@ namespace RestServerCustomers.Services
                     newJsonCustomers = "{ 'id': " + customer.Id + ", 'firstName': '" + customer.FirstName + "', 'lastName': '" + customer.LastName + "', 'age': " + customer.Age + "}";
                     var newCustObj = JObject.Parse(newJsonCustomers);
                     customersArray.Add(newCustObj);
-                }                
+                }
 
+                //save json with customers
                 jsonObj["customers"] = customersArray;
                 string newJsonResult = JsonConvert.SerializeObject(jsonObj, Formatting.Indented);
-                File.WriteAllText(jsonFile, newJsonResult);
+                await File.WriteAllTextAsync(jsonFile, newJsonResult);
             }
             catch (Exception ex)
             {

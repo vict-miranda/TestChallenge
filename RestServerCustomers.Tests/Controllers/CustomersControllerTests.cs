@@ -24,13 +24,13 @@ namespace RestServerCustomers.Tests.Controllers
         }
 
         [Test]
-        public void GetCustomers_OK_ReturnList()
+        public async Task GetCustomers_OK_ReturnList()
         {
             //Arrange            
-            _customerService.Arrange(x => x.GetCustomers()).Returns(this.GetCustomerList());
+            _customerService.Arrange(x => x.GetCustomers()).ReturnsAsync(this.GetCustomerList());
 
             //Act
-            var result = _controller.Get();
+            var result = await _controller.Get();
             var contentResult = result as OkObjectResult;
 
             //Assert
@@ -41,44 +41,44 @@ namespace RestServerCustomers.Tests.Controllers
         }
 
         [Test]
-        public void AddCustomers_ReturnOk()
+        public async Task AddCustomers_ReturnOk()
         {
             //Arrange
-            //var newCustomer = new Customer { Id = 5, FirstName = "Test", LastName = "test", Age = 32 };
-            //var resultTuple = new ValueTuple<List<Customer>, ValidationErrors>(new List<Customer>(), new ValidationErrors());
+            var newCustomers = new List<Customer> { new Customer { Id = 5, FirstName = "Test", LastName = "test", Age = 32 } };
+            var resultTuple = new ValueTuple<List<Customer>, List<ValidationErrors>>(new List<Customer>(), new List<ValidationErrors>());
 
-            //_customerService.Arrange(x => x.AddCustomer(newCustomer)).Returns(resultTuple);
+            _customerService.Arrange(x => x.AddCustomer(newCustomers)).ReturnsAsync(resultTuple);
 
-            ////Act
-            //var result = _controller.Post(newCustomer);
-            //var contentResult = result as OkObjectResult;
+            //Act
+            var result = await _controller.Post(newCustomers);
+            var contentResult = result as OkObjectResult;
 
-            ////Assert
-            //Assert.That(result, Is.Not.Null);
-            //Assert.That(contentResult, Is.Not.Null);
-            //Assert.That(result, Is.TypeOf<OkObjectResult>());
-            //Assert.AreEqual((int)HttpStatusCode.OK, contentResult.StatusCode);
+            //Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(contentResult, Is.Not.Null);
+            Assert.That(result, Is.TypeOf<OkObjectResult>());
+            Assert.AreEqual((int)HttpStatusCode.OK, contentResult.StatusCode);
         }
 
         [Test]
-        public void AddCustomers_ReturnError()
+        public async Task AddCustomers_ReturnError()
         {
             //Arrange
-            //var newCustomer = new Customer { Id = 1, FirstName = "", LastName = "", Age = 2 };
-            //var validationError = new ValidationErrors { ErrorMessages = new List<string> { "Error" } };
-            //var resultTuple = new ValueTuple<List<Customer>, ValidationErrors>(new List<Customer>(), validationError);
+            var newCustomers = new List<Customer> { new Customer { Id = 5, FirstName = "", LastName = "", Age = 2 } };
+            var validationError = new List<ValidationErrors> { new ValidationErrors { ErrorMessages = new List<string> { "Error" } } };
+            var resultTuple = new ValueTuple<List<Customer>, List<ValidationErrors>>(new List<Customer>(), validationError);            
 
-            //_customerService.Arrange(x => x.AddCustomer(newCustomer)).Returns(resultTuple);
+            _customerService.Arrange(x => x.AddCustomer(newCustomers)).ReturnsAsync(resultTuple);
 
-            ////Act
-            //var result = _controller.Post(newCustomer);
-            //var contentResult = result as BadRequestObjectResult;
+            //Act
+            var result = await _controller.Post(newCustomers);
+            var contentResult = result as BadRequestObjectResult;
 
-            ////Assert
-            //Assert.That(result, Is.Not.Null);
-            //Assert.That(contentResult, Is.Not.Null);
-            //Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
-            //Assert.AreEqual((int)HttpStatusCode.BadRequest, contentResult.StatusCode);
+            //Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(contentResult, Is.Not.Null);
+            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.AreEqual((int)HttpStatusCode.BadRequest, contentResult.StatusCode);
         }
 
         private List<Customer> GetCustomerList()

@@ -9,7 +9,6 @@ namespace RestServerCustomers.Tests.IntegrationTests
     [TestFixture]
     public class Tests
     {
-        private static int _id = 0;
         private CustomWebApplicationFactory<Program> _applicationFactory;
         private CustomerService _customerService2;
         private IWebHostEnvironment _webHostEnvironment;
@@ -21,7 +20,6 @@ namespace RestServerCustomers.Tests.IntegrationTests
             _applicationFactory = new CustomWebApplicationFactory<Program>();
             _webHostEnvironment = Mock.Create<IWebHostEnvironment>();
             _customerService2 = new CustomerService(_webHostEnvironment);
-            _id = GetNextAvailableId();
         }
 
         [Test, Order(1)]
@@ -44,13 +42,16 @@ namespace RestServerCustomers.Tests.IntegrationTests
         {
             //Arrange
             var client = GetClient();
-            
-            var newCustomer = new Customer
-            {
-                Id = _id + 1,
-                FirstName = GetRandomFirstName(),
-                LastName = GetRandomLastName(),
-                Age = GetRandonAge() + 8
+            var nextId = await GetNextAvailableId();
+
+            var newCustomer = new List<Customer> {
+                new Customer
+                {
+                    Id = nextId + 1,
+                    FirstName = GetRandomFirstName(),
+                    LastName = GetRandomLastName(),
+                    Age = GetRandonAge() + 8
+                } 
             };
 
             //Act
@@ -60,7 +61,6 @@ namespace RestServerCustomers.Tests.IntegrationTests
 
             //Assert
             Assert.IsTrue(result.StatusCode == System.Net.HttpStatusCode.OK && actualResult.Count > 0);
-            _id = _id + 1;
         }
 
         [Test, Order(3)]
@@ -70,13 +70,16 @@ namespace RestServerCustomers.Tests.IntegrationTests
         {
             //Arrange
             var client = GetClient();
+            var nextId = await GetNextAvailableId();
 
-            var newCustomer = new Customer
-            {
-                Id = _id + 1,
-                FirstName = firstName,
-                LastName = lastName,
-                Age = age
+            var newCustomer = new List<Customer> { 
+                new Customer
+                {
+                    Id = nextId + 1,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Age = age
+                }
             };
 
             //Act
@@ -85,13 +88,23 @@ namespace RestServerCustomers.Tests.IntegrationTests
             var actualResult = JsonConvert.DeserializeObject<List<Customer>>(responseString);
 
             //Assert
-            Assert.IsTrue(result.StatusCode == System.Net.HttpStatusCode.OK && actualResult.Count > 0);
-            _id = _id + 1;
+            if (String.IsNullOrEmpty(firstName.Trim()) || String.IsNullOrEmpty(lastName.Trim()))
+            {
+                Assert.IsTrue(result.StatusCode == System.Net.HttpStatusCode.BadRequest);
+            }
+            else if (age < 18)
+            {
+                Assert.IsTrue(result.StatusCode == System.Net.HttpStatusCode.BadRequest);
+            }
+            else
+            {
+                Assert.IsTrue(result.StatusCode == System.Net.HttpStatusCode.OK && actualResult.Count > 0);
+            }            
         }
 
-        public int GetNextAvailableId()
+        public async Task<int> GetNextAvailableId()
         {
-            var list = _customerService2.GetCustomers();
+            var list = await _customerService2.GetCustomers();
             return list.OrderByDescending(x => x.Id).FirstOrDefault().Id;
         }
 
@@ -136,7 +149,8 @@ namespace RestServerCustomers.Tests.IntegrationTests
                 "Tomas",
                 "Joel",
                 "Lukas",
-                "Carlos"
+                "Carlos",
+                " "
             };
         }
 
@@ -153,7 +167,8 @@ namespace RestServerCustomers.Tests.IntegrationTests
                 "Larsen",
                 "Chan",
                 "Anderson",
-                "Lane"
+                "Lane",
+                " "
             };
         }
     }

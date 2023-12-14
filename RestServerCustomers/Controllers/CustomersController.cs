@@ -20,9 +20,9 @@ namespace RestServerCustomers.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> Get()
         {
-            var customers = _customerService.GetCustomers();          
+            var customers = await _customerService.GetCustomers();          
             return Ok(customers);
         }
 
@@ -32,10 +32,10 @@ namespace RestServerCustomers.Controllers
         /// <param name="customers">Customers information</param>
         /// <returns></returns>
         [HttpPost]
-        public IActionResult Post([FromBody]List<Customer> customers)
+        public async Task<IActionResult> Post([FromBody]List<Customer> customers)
         {
-            var (response, errors) = _customerService.AddCustomer2(customers);
-            if (errors != null && errors.ErrorMessages.Any())
+            var (response, errors) = await _customerService.AddCustomer(customers);
+            if (errors != null && errors.Any())
             {
                 return BadRequest(errors);
             }
